@@ -1,0 +1,47 @@
+{
+  "basics": {
+    "name": "string",
+    "location": "string",
+    "phone": "string",
+    "email": "string",
+    "url": "string",
+    "linkedin": "string",
+    "github": "string"
+  },
+  "summary": "string",
+  "education": [
+  {"institution": "string",
+    "degree": "string",
+    "graduation_date": "string",
+    "gpa": "number"}
+],
+  "skills": {
+    "Dynamic Category Name": [
+      "string",
+      "string"
+    ]
+  },
+  "professional_experience": [
+    {
+      "company": "string",
+      "role": "string",
+      "duration": "string",
+      "responsibilities": [
+        "string"
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "title": "string",
+      "tech_stack": [
+      "string",
+      "string"
+    ],
+      "description" : [
+        "string"
+      ],
+      "link": "string"
+    }
+  ]
+}
