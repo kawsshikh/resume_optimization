@@ -1,5 +1,7 @@
 import json
 import time
+import tempfile
+import os
 from io import BytesIO
 
 import streamlit as st
@@ -11,17 +13,17 @@ from src.core.resume_generator import get_resume
 from src.core.resume_builder import ResumeBuilder
 from src.config import FONT_PATH, skeleton
 
-## Cookies manager to extract API key
+## Cookie manager to extract API key
 cookie_manager = stx.CookieManager()
 
-## Configure Page
+## Configure page
 st.set_page_config(
     page_title="Resume Optimizer",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-### initialization of session state elements
+### Initialization of session state elements
 DEFAULTS = {
     "step": 1,
     "optimized_json": {},
@@ -37,7 +39,7 @@ DEFAULTS = {
 for key, value in DEFAULTS.items():
     if key not in st.session_state:
         st.session_state[key] = value
-st.session_state.render_count +=1
+st.session_state.render_count += 1
 
 
 ## Check if API key is present in cookies
@@ -47,38 +49,38 @@ if not st.session_state.cookie_loaded and st.session_state.render_count > 1:
         st.session_state.gemini_key = cookie_val
     st.session_state.cookie_loaded = True
 
-## Instructions to the user
+## Sidebar instructions
 with st.sidebar:
-        st.markdown("""
-        # Resume ATS Optimizer
-        #### By Kawsshikh Sajjana Gandla
-        *Tailor your professional story in seconds.*
+    st.markdown("""
+    # Resume ATS Optimizer
+    #### By Kawsshikh Sajjana Gandla
+    *Tailor your professional story in seconds.*
 
-        ---
+    ---
 
-        ### :material/info: About the Project
-        An AI-powered resume refactoring tool that leverages the Gemini 2.5 Flash engine to intelligently rewrite and reorder your resume based on a specific job description. This application eliminates the need to jump between multiple apps and spend hours formatting, delivering a clean, ATS-friendly output that increases your visibility to recruiters.
+    ### :material/info: About the Project
+    An AI-powered resume refactoring tool that leverages the Gemini 2.5 Flash engine to intelligently rewrite and reorder your resume based on a specific job description. This application eliminates the need to switch between multiple apps and spend hours formatting, delivering a clean, ATS-friendly output that increases your visibility to recruiters.
 
-        ### :material/settings: Tech Stack
-        :blue[**Python**] | :orange[**Streamlit**] | :green[**Python-docx**] | :red[**pdfplumber**] | :violet[**Google GenAI**] | :grey[**Pillow**] | :orange[**extra-streamlit-components**] | :green[**st-copy-to-clipboard**]
+    ### :material/settings: Tech Stack
+    :blue[**Python**] | :orange[**Streamlit**] | :green[**Python-docx**] | :red[**pdfplumber**] | :violet[**Google GenAI**] | :grey[**Pillow**] | :orange[**extra-streamlit-components**] | :green[**st-copy-to-clipboard**]
 
-        ---
+    ---
 
-        ### :material/ads_click: How to use:
-        1. **Upload or Paste** | Provide your current resume in PDF or DOCX format.
-        2. **Input the JD** | Paste the target job description into the text area.
-        3. **Review & Edit** | Fine-tune the AI-generated suggestions provided in Step 2.
-        4. **Export** | Download your optimized, ATS-friendly `.docx` file.
+    ### :material/ads_click: How to use:
+    1. **Upload or Paste** | Provide your current resume in PDF or DOCX format.
+    2. **Input the JD** | Paste the target job description into the text area.
+    3. **Review & Edit** | Fine-tune the AI-generated suggestions in Step 2.
+    4. **Export** | Download your optimized, ATS-friendly `.docx` file.
 
-        > **Disclaimer:** This tool utilizes the *Gemini 2.5 Flash* model. Always perform a final human review of the generated content to ensure accuracy.
+    > **Disclaimer:** This tool uses the *Gemini 2.5 Flash* model. Always perform a final human review of the generated content to ensure accuracy.
 
-        [View Source Code on GitHub](https://github.com/kawsshikh/resume_optimization)
-    """)
+    [View Source Code on GitHub](https://github.com/kawsshikh/resume_optimization)
+""")
 
-## Log out option implementation
+## Log out option
 if st.session_state.gemini_key:
-    with st.popover("Logged in - click to logout"):
-        if st.button("Forget API KEY"):
+    with st.popover("Logged in — click to log out"):
+        if st.button("Forget API Key"):
             cookie_manager.delete("gemini_api_key")
             st.session_state.gemini_key = ""
             st.session_state.step = 1
@@ -86,21 +88,21 @@ if st.session_state.gemini_key:
             time.sleep(1)
             st.rerun()
 
-## Instructions to obtain API  key
+## Instructions to obtain API key
 else:
     st.info("""
     **Gemini AI Integration**
-    * Please have your API key ready to optimize seamlessly.
-    * To get you API key: [click here](https://aistudio.google.com)
-    * Ensure you are on a trusted device before entering your credentials.
+    * Please have your API key ready to proceed.
+    * To get your API key: [click here](https://aistudio.google.com)
+    * Only enter your credentials on a trusted device.
     ---
-    **Privacy Note:** Your API key is stored locally in your browser session. It is never seen by the app owner. You can remove it at any time by clicking the **Log Out** button in the sidebar.
+    **Privacy Note:** Your API key is stored locally in your browser session. It is never seen by the app owner. You can remove it at any time by clicking the **Log Out** button.
     """)
 
 
-## GET RESUME AND JOB DESCRIPTION
+## STEP 1 — GET RESUME AND JOB DESCRIPTION
 def inputs():
-    st.markdown("### Provide Resume and Job Description to Optimize")
+    st.markdown("### Provide Your Resume and Job Description")
     col_resume, col_jd = st.columns(2)
 
     with col_resume:
@@ -113,7 +115,7 @@ def inputs():
                 else:
                     st.session_state.resume_text = extract_docx(uploaded_file)
             st.session_state.resume_text = st.text_area(
-                "Paste Resume/Edit extracted text:",
+                "Paste or edit extracted resume text:",
                 value=st.session_state.resume_text,
                 height=300,
             )
@@ -121,7 +123,7 @@ def inputs():
     with col_jd:
         with st.container(border=True):
             st.subheader("Job Description")
-            st.session_state.desc = st.text_area("Paste JD here:", height=410)
+            st.session_state.desc = st.text_area("Paste job description here:", height=410)
 
     _, col_btn, col_warn = st.columns([4, 4, 4])
     with col_btn:
@@ -141,11 +143,11 @@ def inputs():
                 with col_warn:
                     st.warning("Please provide both a resume and a job description.")
 
-## SELECT OPTIMIZATION OPTION
+
+## STEP 2 — SELECT OPTIMIZATION OPTION
 def select():
     st.markdown("## Optimization Strategy")
     st.info("Choose your preferred method to refine and enhance your resume.")
-
 
     st.markdown("### Option 1: Instant AI Optimization")
     with st.container(border=True):
@@ -154,8 +156,8 @@ def select():
             st.markdown("""
             **Powered by Gemini 2.5 Flash**
             - **Speed:** Near-instant processing.
-            - **Precision:** Automated analysis and modern syntax.
-            - **Effort:** Zero manual copying required.
+            - **Precision:** Automated analysis with modern syntax.
+            - **Effort:** No manual copying required.
             """)
         with col_r:
             if st.session_state.gemini_key:
@@ -169,11 +171,11 @@ def select():
                             st.session_state.step = 3
                             st.rerun()
                         except json.JSONDecodeError:
-                            st.error("Gemini returned malformed JSON. Try again or use Option 2.")
+                            st.error("Gemini returned malformed JSON. Please try again or use Option 2.")
                         except Exception as e:
                             st.error(f"API error: {e}")
             else:
-                st.warning("API key not found.")
+                st.warning("No API key found.")
                 api_key_input = st.text_input("Enter Gemini API Key", key="api_key_input", type="password")
                 if st.button("Save Key"):
                     if api_key_input:
@@ -184,7 +186,6 @@ def select():
                         st.rerun()
                     else:
                         st.warning("Please enter an API key.")
-
 
     st.markdown("### Option 2: Manual Refinement")
     with st.container(border=True):
@@ -200,7 +201,7 @@ def select():
             st_copy_to_clipboard(st.session_state.full_prompt, "Copy Prompt", "✅ Copied!")
 
         with col_r:
-            st.markdown("### Ready with Result?")
+            st.markdown("### Ready with Your Result?")
             raw_input = st.text_area("Paste JSON result here:", height=300)
             if st.button("Proceed to Formatting", type="primary", use_container_width=True):
                 if raw_input:
@@ -211,9 +212,10 @@ def select():
                     except json.JSONDecodeError as e:
                         st.error(f"Invalid JSON: {e}")
                 else:
-                    st.warning("Paste the JSON result before proceeding.")
+                    st.warning("Please paste the JSON result before proceeding.")
 
-## EDIT AND DOWNLOAD DOCUMENT AS .docx
+
+## STEP 3 — EDIT AND DOWNLOAD AS .docx
 def edit():
     st.markdown("## Review & Edit Generated Resume")
     updated_data = {}
@@ -221,7 +223,7 @@ def edit():
     for section, content in st.session_state.optimized_json.items():
         with st.expander(f"## {section.replace('_', ' ').title()}", expanded=False):
 
-            # VIEW 1: Categorized Skills (dict of lists)
+            # VIEW 1: Categorized skills (dict of lists)
             if isinstance(content, dict) and any(isinstance(v, list) for v in content.values()):
                 sub_dict = {}
                 for cat_name, items in content.items():
@@ -236,7 +238,7 @@ def edit():
                     sub_dict[cat_name] = [i.strip() for i in edited.split(",") if i.strip()]
                 updated_data[section] = sub_dict
 
-            # VIEW 2: Flat dict (Personal Info)
+            # VIEW 2: Flat dict (personal info)
             elif isinstance(content, dict) and all(not isinstance(v, (dict, list)) for v in content.values()):
                 updated_data[section] = {}
                 cols = st.columns(2)
@@ -248,7 +250,7 @@ def edit():
                             key=f"flat_{section}_{key}",
                         )
 
-
+            # VIEW 3: List of dicts (experience, education, projects)
             elif isinstance(content, list) and content and isinstance(content[0], dict):
                 updated_list = []
                 for idx, item in enumerate(content):
@@ -283,20 +285,19 @@ def edit():
                         updated_list.append(new_item)
                 updated_data[section] = updated_list
 
-
+            # VIEW 4: Flat list
             elif isinstance(content, list):
                 list_str = "\n".join(str(item) for item in content)
                 edited = st.text_area(f"Edit {section}", value=list_str, key=f"list_{section}")
                 updated_data[section] = [i.strip() for i in edited.split("\n") if i.strip()]
 
-
+            # VIEW 5: Plain text / fallback
             else:
                 updated_data[section] = st.text_area(
                     f"Edit {section}", value=str(content), key=f"solo_{section}"
                 )
 
             st.divider()
-
 
     if st.button("✅ Looks Good! Proceed to Download", type="primary"):
         st.session_state.optimized_json = updated_data
@@ -314,25 +315,35 @@ def edit():
             key="section_order",
         )
 
-        custom_filename = st.text_input("Save Resume As:", value="Optimized_Resume", key="filename_input")
+        custom_filename = st.text_input("Save resume as:", value="Optimized_Resume", key="filename_input")
         final_filename = custom_filename if custom_filename.endswith(".docx") else f"{custom_filename}.docx"
 
         if st.button("Generate .docx", key="generate_docx"):
             with st.spinner("Building your resume..."):
                 try:
-                    temp_path = "src/templates/temp_optimized.json"
-                    with open(temp_path, "w") as f:
-                        json.dump(st.session_state.optimized_json, f)
+                    with tempfile.NamedTemporaryFile(
+                        mode="w",
+                        suffix=".json",
+                        delete=False,
+                        dir=tempfile.gettempdir()
+                    ) as tmp_file:
+                        json.dump(st.session_state.optimized_json, tmp_file)
+                        temp_path = tmp_file.name
 
-                    builder = ResumeBuilder(temp_path, FONT_PATH, order)
-                    buffer = BytesIO()
-                    builder.build_resume(buffer)
-                    buffer.seek(0)
-
-                    st.session_state.docx_buffer = buffer.getvalue()
+                    try:
+                        builder = ResumeBuilder(temp_path, FONT_PATH, order)
+                        buffer = BytesIO()
+                        builder.build_resume(buffer)
+                        buffer.seek(0)
+                        st.session_state.docx_buffer = buffer.getvalue()
+                    finally:
+                        # Always clean up the temp file
+                        if os.path.exists(temp_path):
+                            os.remove(temp_path)
 
                 except Exception as e:
                     st.error(f"Error generating document: {e}")
+
         if st.session_state.docx_buffer:
             st.download_button(
                 label="⬇️ Download Resume",
