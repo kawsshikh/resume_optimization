@@ -1,11 +1,66 @@
 import re
 from docx import Document
-from docx.shared import Pt, Inches
+from docx.shared import Pt, Inches, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_TAB_ALIGNMENT
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from PIL import ImageFont
 import json
+
+class StyleConfig:
+    FONT_NAME = 'Aptos'
+    BASE_SIZE = 10
+    HEADER_SIZE = 11
+    NAME_SIZE = 18
+    MARGINS = 0.25
+    LINE_SPACING = 1.0
+    HYPERLINK_COLOR = "0000FF"
+    SECTION_BORDER_SZ = '6'
+
+
+class DocUtils:
+    @staticmethod
+    def add_hyperlink(paragraph, url, text, font_name, size):
+        part = paragraph.part
+        full_url = url if url.startswith('http') else f"https://{url}"
+        r_id = part.relate_to(full_url, "http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink",
+                              is_external=True)
+
+        hyperlink = OxmlElement('w:hyperlink')
+        hyperlink.set(qn('r:id'), r_id)
+
+        new_run = OxmlElement('w:r')
+        rPr = OxmlElement('w:rPr')
+
+        for tag, val in [('w:rStyle', 'Hyperlink'), ('w:sz', str(size * 2)), ('w:color', StyleConfig.HYPERLINK_COLOR),
+                         ('w:u', 'single')]:
+            el = OxmlElement(tag)
+            el.set(qn('w:val'), val)
+            rPr.append(el)
+
+        rFonts = OxmlElement('w:rFonts')
+        rFonts.set(qn('w:ascii'), font_name)
+        rFonts.set(qn('w:hAnsi'), font_name)
+        rPr.append(rFonts)
+
+        new_run.append(rPr)
+        t = OxmlElement('w:t')
+        t.text = text
+        new_run.append(t)
+        hyperlink.append(new_run)
+        paragraph._p.append(hyperlink)
+
+    @staticmethod
+    def add_section_border(paragraph):
+        pPr = paragraph._p.get_or_add_pPr()
+        pBdr = OxmlElement('w:pBdr')
+        bottom = OxmlElement('w:bottom')
+        bottom.set(qn('w:val'), 'single')
+        bottom.set(qn('w:sz'), StyleConfig.SECTION_BORDER_SZ)
+        bottom.set(qn('w:space'), '1')
+        bottom.set(qn('w:color'), '000000')
+        pBdr.append(bottom)
+        pPr.append(pBdr)
 
 
 class ResumeBuilder:
@@ -40,15 +95,34 @@ class ResumeBuilder:
 
     def add_hyperlink(self, url, text):
         part = self.doc.part
-        r_id = part.relate_to(url, "http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink",
-                              is_external=True)
+        if 'https://' not in url:
+            full_address = f"https://{url}"
+        else:
+            full_address = url
+        r_id = part.relate_to(full_address, "http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink",is_external=True)
+
         hyperlink = OxmlElement('w:hyperlink')
         hyperlink.set(qn('r:id'), r_id)
+
         new_run = OxmlElement('w:r')
         rPr = OxmlElement('w:rPr')
+
         rStyle = OxmlElement('w:rStyle')
         rStyle.set(qn('w:val'), 'Hyperlink')
         rPr.append(rStyle)
+
+        sz = OxmlElement('w:sz')
+        sz.set(qn('w:val'), '20')
+        rPr.append(sz)
+
+        color = OxmlElement('w:color')
+        color.set(qn('w:val'), '0000FF')
+        rPr.append(color)
+
+        u = OxmlElement('w:u')
+        u.set(qn('w:val'), 'single')
+        rPr.append(u)
+
         rFonts = OxmlElement('w:rFonts')
         rFonts.set(qn('w:ascii'), self.font_name)
         rFonts.set(qn('w:hAnsi'), self.font_name)
@@ -120,7 +194,7 @@ class ResumeBuilder:
         for skill in skills:
             width_px = font.getlength(f"{skill}:")
             max_width_px = max(max_width_px, width_px)
-        return (max_width_px / 96) + 0.4
+        return (max_width_px / 96) + 0.5
 
     def personal(self):
         self.add_element(self.data['basics']['name'], font_size=18, bold=True)
@@ -130,12 +204,18 @@ class ResumeBuilder:
             p = self.doc.add_paragraph()
             p.paragraph_format.space_after = Pt(0)
             if self.data['basics'].get("linkedin"):
-                p.add_run("Linkedin: ").font.size = Pt(10)
+                run = p.add_run("Linkedin: ")
+                run.font.size = Pt(10)
+                run.font.name = self.font_name
                 p._p.append(self.add_hyperlink(self.data['basics']['linkedin'], self.data['basics']['linkedin']))
             if self.data['basics'].get("linkedin") and self.data['basics'].get("github"):
-                p.add_run(" | ").font.size = Pt(10)
+                run = p.add_run(" | ")
+                run.font.size = Pt(10)
+                run.font.name = self.font_name
             if self.data['basics'].get("github"):
-                p.add_run("GitHub: ").font.size = Pt(10)
+                run = p.add_run("GitHub: ")
+                run.font.size = Pt(10)
+                run.font.name = self.font_name
                 p._p.append(self.add_hyperlink(self.data['basics']['github'], self.data['basics']['github']))
 
     def summary(self):
@@ -160,7 +240,7 @@ class ResumeBuilder:
         if self.data.get("projects"):
             self.add_element("PROJECTS", font_size=11, bold=True)
             for proj in self.data["projects"]:
-                link_el = self.add_hyperlink(proj["link"], proj["link"])
+                link_el = self.add_hyperlink(proj["link"], "Project Link")
                 self.styled_element(proj['title'], link_el, self.right_edge)
                 for des in proj["description"]:
                     self.add_element(des, paragraph_style='List Bullet')
@@ -173,6 +253,11 @@ class ResumeBuilder:
             self.add_element(
                 f"**{education['degree']}** | {education['institution']}, {education['graduation_date']} | GPA: {education['gpa']}")
 
+    def certifications(self):
+        self.add_element("CERTIFICATIONS", font_size=11, bold=True)
+        for certificate in self.data["certification"]:
+            self.add_element(certificate, paragraph_style='List Bullet')
+
     def build_resume(self, output_path):
         method_map = {
             "Personal": self.personal,
@@ -180,7 +265,8 @@ class ResumeBuilder:
             "Skills": self.skills,
             "Work Experience": self.work,
             "Education": self.Education,
-            "Projects": self.projects
+            "Projects": self.projects,
+            "Certification" : self.certifications
         }
         for task in self.order:
             action = method_map.get(task)
