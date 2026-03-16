@@ -5,10 +5,9 @@ Objective: Rewrite the provided resume to achieve 98%+ ATS compatibility while m
 Write a single, unbroken paragraph of 60–80 words
 Must include: total years of experience, JD-aligned job title, 3–4 key technical skills, 1 quantified achievement.
 
-2. Basics
+2. BASICS
 Preserve Name, Location, Phone, Email, and all links exactly as provided
 Do not invent, infer, or add any missing fields
-
 
 3. SKILLS
 Organize into 4–6 clearly labeled categories
@@ -16,7 +15,6 @@ Each category heading must be ≤17 characters
 Order categories by JD relevance (most relevant first)
 Every listed skill must appear at least once in Experience or Projects
 No duplicate skills across categories
-
 
 4. EXPERIENCE
 Bullet Strategy:
@@ -34,27 +32,54 @@ Tense:
 Current role → present tense
 All previous roles → past tense
 
-
-5. PROJECTS(if exists):
+5. PROJECTS (if exists):
 Include at most 3 JD-relevant projects only that exist in the input resume based on how closely they are related
 Each project must have exactly 3 bullets following the XYZ/STAR formula
 Each bullet must include a measurable outcome where possible
-
 
 6. EDUCATION:
 List in reverse chronological order
 Preserve all facts exactly: Institution, Degree, Graduation Date, GPA (do not alter or omit)
 
-
 7. FORMATTING & ATS STANDARDS:
 Use numerals for all metrics (e.g., "15%", "3x", "$2M") — never spell out numbers used as measurements
-No underscores or decorative symbols(even ** text** to represent boldness) anywhere in the document
+No underscores or decorative symbols (even **text** to represent boldness) anywhere in the document
 Integrate JD keywords naturally throughout — do not keyword-stuff
 Ensure clean, parser-friendly formatting for 98%+ ATS score
 
+8. ATS SELF-EVALUATION & REWRITE LOOP (MANDATORY)
 
-8. OUTPUT FORMAT
+After producing a draft, you must silently score it before outputting anything. Do not skip this step.
 
-Output must be returned as a strict JSON object adhering exactly to the provided skeleton schema
-Do not add, remove, or rename any JSON keys
-Before finalizing, perform a silent grammar and consistency check across the full document
+Score the draft across these 5 dimensions (20 points each, 100 total):
+
+  a. Keyword Coverage (20 pts)
+     Count every hard skill, tool, technology, and role-specific phrase from the JD.
+     Award 1 pt per matched keyword, up to 20. Deduct 2 pts per JD keyword missing entirely.
+
+  b. Keyword Placement (20 pts)
+     JD-critical keywords must appear in Summary, Skills, and at least 2 Experience bullets.
+     Deduct 3 pts per critical keyword that appears only once or only in Skills.
+
+  c. Bullet Formula Compliance (20 pts)
+     Every bullet must follow [Action Verb] + [Task] + [Tool/Method] + [Metric/Result].
+     Deduct 2 pts per bullet that is missing a metric, repeats an action verb, or omits the tool/method.
+
+  d. Formatting & Parsability (20 pts)
+     Start at 20. Deduct 5 pts for each: spelled-out number used as a metric, decorative symbol,
+     bold/underline markup, duplicate skill across categories, or missing/altered education field.
+
+  e. Section Completeness (20 pts)
+     All required sections must be present and correctly populated.
+     Deduct 4 pts per section that is missing, incomplete, or violates its rules above.
+
+If the total score is below 98, identify every deduction, fix each issue, and re-score silently.
+Repeat this loop until the score reaches 98 or higher.
+Only output the final JSON once a score of 98+ is confirmed.
+Never reveal the score, the deduction breakdown, or any iteration notes in the output — output the JSON result only.
+
+9. OUTPUT FORMAT
+
+Output must be returned as a strict JSON object adhering exactly to the provided skeleton schema.
+Do not add, remove, or rename any JSON keys.
+Before finalizing, perform a silent grammar and consistency check across the full document.
