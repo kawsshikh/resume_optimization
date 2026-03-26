@@ -227,7 +227,7 @@ class ResumeBuilder:
         skills_dict = self.data["skills"]
         tab_pos = Inches(self.get_tab_length(list(skills_dict.keys())))
         for key, value in skills_dict.items():
-            self.styled_element(key, ', '.join(value), tab_pos)
+            self.styled_element(f"{key}:", ', '.join(value), tab_pos)
 
     def work(self):
         self.add_element("WORK EXPERIENCE", font_size=11, bold=True)
@@ -254,7 +254,8 @@ class ResumeBuilder:
                 f"**{education['degree']}** | {education['institution']}, {education['graduation_date']} | GPA: {education['gpa']}")
 
     def certifications(self):
-        self.add_element("CERTIFICATIONS", font_size=11, bold=True)
+        if self.data["certification"]:
+            self.add_element("CERTIFICATIONS", font_size=11, bold=True)
         for certificate in self.data["certification"]:
             self.add_element(certificate, paragraph_style='List Bullet')
 
